@@ -2,7 +2,7 @@ from SteamLogin import SteamLogin
 from SteamExceptions import ReceiptFailed
 from utils import ignoreConnectionErrors
 from SteamInventory import Inventory, Item
-from urlparse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 import re, json
 
 class Offer(object):
@@ -36,8 +36,8 @@ class Offer(object):
             assert o.netloc == 'steamcommunity.com'
             assert o.path == '/tradeoffer/new/'
             q = parse_qs(o.query)
-            assert 'partner' in q.keys()
-            assert 'token' in q.keys()
+            assert 'partner' in list(q.keys())
+            assert 'token' in list(q.keys())
             self.partner = q['partner'][0]
             self.token = q['token'][0]
         except AssertionError:
@@ -46,13 +46,13 @@ class Offer(object):
         tradeURLResponse = self.request.get(tradeURL)
         self.tradeURLResponse = tradeURLResponse
         if tradeURLResponse.status_code != 200:
-            print tradeURLResponse.text
+            print(tradeURLResponse.text)
             raise Exception("Server Error" + str(tradeURLResponse.status_code))
         text = tradeURLResponse.text
         try:
             self.MyContexts = json.loads(re.search(r"var g_rgAppContextData = ([\s\"\\\/\-\w\d\{\}\[\]\:\.\,\'\_\&]+);",text).group(1))
             self.PartnerContexts = json.loads(re.search(r"var g_rgPartnerAppContextData = ([\s\"\\\/\-\w\d\{\}\[\]\:\.\,\'\_\&]+);",text).group(1))
-            self.PartnerSteamID = long(re.search(r"UserThem\.SetSteamId\( \'(\d+)\' \);",text).group(1))
+            self.PartnerSteamID = int(re.search(r"UserThem\.SetSteamId\( \'(\d+)\' \);",text).group(1))
             self.OurEscrow = int(re.search(r"var g_daysMyEscrow = (\d+);",text).group(1))
             self.TheirEscrow = int(re.search(r"var g_daysTheirEscrow = (\d+);",text).group(1))
         except AttributeError:
@@ -120,6 +120,7 @@ class Offer(object):
             asset['amount'] = x.amount
             asset['assetid'] = str(x.itemid)
             payload['them']['assets'].append(asset)
+        print(payload)
         return json.dumps(payload,separators=(',',':'))
     def _get_trade_offer_create_params(self):
         payload = {

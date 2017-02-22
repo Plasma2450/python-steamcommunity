@@ -1,6 +1,5 @@
-import requests, urllib, base64, time, re, pdb
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_v1_5
+import requests, urllib.request, urllib.parse, urllib.error, base64, time, re, pdb
+import rsa
 from SteamMobileAuth import getDeviceID
 from bs4 import BeautifulSoup
 
@@ -19,7 +18,7 @@ class SteamLogin(object):
     def login(self,details):
         if 'steamguard' in details:
             parts = details['steamguard'].partition("||")
-            self.request.cookies.set("steamMachineAuth"+parts[0],unicode(urllib.quote(parts[2])),
+            self.request.cookies.set("steamMachineAuth"+parts[0],str(urllib.parse.quote(parts[2])),
                     domain="https://steamcommunity.com")
         mobileHeaders = {
             "X-Requested-With": "com.valvesoftware.android.steam.community",
@@ -32,17 +31,16 @@ class SteamLogin(object):
         self.request.cookies.set("mobileClient","android",domain="https://steamcommunity.com")
         rsa_response = self.request.post("https://steamcommunity.com/login/getrsakey/",
                 data={"username":details['username']}).json()
-        key = RSA.construct((long(rsa_response['publickey_mod'],16),long(rsa_response['publickey_exp'],16)))
-        cipher = PKCS1_v1_5.new(key)
+        key = rsa.PublicKey(n=int(rsa_response['publickey_mod'],16),e =int(rsa_response['publickey_exp'],16))
         payload = {
-                "captcha_text": details['captcha'] if "captcha" in details.keys() else "",
+                "captcha_text": details['captcha'] if "captcha" in list(details.keys()) else "",
                 "captchagid": self._captchaGid,
-                "emailauth": details['authCode'] if "authCode" in details.keys() else "",
+                "emailauth": details['authCode'] if "authCode" in list(details.keys()) else "",
                 "emailsteamid": "",
-                "password":base64.b64encode(cipher.encrypt(details['password'])),
+                "password":base64.b64encode(rsa.encrypt(details['password'].encode(),key)),
                 "remember_login": "true",
                 "rsatimestamp" : rsa_response['timestamp'],
-                "twofactorcode": details['twoFactorCode'] if "twoFactorCode" in details.keys() else "",
+                "twofactorcode": details['twoFactorCode'] if "twoFactorCode" in list(details.keys()) else "",
                 "username": details['username'],
                 "oauth_client_id": "DE45CD61",
                 "oauth_scope": "read_profile write_profile read_client write_client",
@@ -77,11 +75,13 @@ class SteamLogin(object):
         match = re.search("https\:\/\/steamcommunity.com\/login\/home\/(\s\S)*",url)
         if match is not None:
             raise NotLoggedInException()
-        match = re.search("https\:\/\/steamcommunity.com\/id\/(\w+)\/",url)
+        match = re.search("https:\/\/steamcommunity.com\/id\/(\S+)",url)
         if match is None:
             raise Error("Malformed Response")
-        return match.groups()[0]
+        match = match.groups()[0].replace("/","")
+        return match
     def _getSteamID(self):
+        print(self.custom_url)
         response = self.request.get("https://steamcommunity.com/id/"+self.custom_url+"/?xml=1")
         match = re.search("<steamID64>(\d+)<\/steamID64>",response.text)
         if match is None:
@@ -155,7 +155,7 @@ class SteamLogin(object):
                 response = self.request.get(req,params=arguments)
                 return response
             except requests.exceptions.ConnectionError as e:
-                print e
+                print(e)
                 time.sleep(1)
 
 class Confirmation(object):

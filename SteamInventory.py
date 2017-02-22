@@ -14,19 +14,14 @@ class Inventory(object):
     def getInventory(self,appID,contextID,tradeable=True,**kwargs):
         update = kwargs.get('update')
         if update is None:
-            if appID in self.items.keys():
-                if contextID in self.items[appID].keys():
+            if appID in list(self.items.keys()):
+                if contextID in list(self.items[appID].keys()):
                     return
         if tradeable:
             params = {'trading':1}
         else:
             params = {'trading':0}
-        if (self.custom_url is None) and (self.steamID is None):
-            raise InventoryException("This inventory has no steam account associated")
-        if self.custom_url is not None:
-            url = "".join(["https://steamcommunity.com/id/",self.custom_url,"/inventory/json/",str(appID),"/",str(contextID)])
-        else:
-            url = "".join(["https://steamcommunity.com/profiles/",str(self.steamID),"/inventory/json/",str(appID),"/",str(contextID)])
+        url = "http://steamcommunity.com/inventory/"+str(self.steamID)+"/"+str(appID)+"/"+str(contextID)+"?l=english&count=5000"
         response = self.request.get(url,params=params)
         if response.status_code != 200:
             raise Exception("Server Error")
@@ -45,7 +40,7 @@ class Inventory(object):
         items = {}
         rgInventory = jsonData['rgInventory']
         rgDescriptions = jsonData['rgDescriptions']
-        for x in rgInventory.keys():
+        for x in list(rgInventory.keys()):
             item_id = int(x)
             class_id = int(rgInventory[x]['classid'])
             instance_id = int(rgInventory[x]['instanceid'])
@@ -53,7 +48,7 @@ class Inventory(object):
             key = "_".join([str(class_id),str(instance_id)])
             description = rgDescriptions[key]
             items.update({item_id:Item(item_id,contextID,class_id,instance_id,amount,description)})
-        if appID not in self.items.keys():
+        if appID not in list(self.items.keys()):
             self.items[appID] = {}
         self.items[appID][contextID] = items
 
@@ -66,7 +61,7 @@ class Item(object):
         self.appid = description['appid']
         self.contextid = contextID
         self.icon_url = "".join(["http://cdn.steamcommunity.com/economy/image/",description['icon_url']])
-        self.icon_url_large = "".join(["http://cdn.steamcommunity.com/economy/image/",description['icon_url_large']]) if 'icon_url_large' in description.keys() else ""
+        self.icon_url_large = "".join(["http://cdn.steamcommunity.com/economy/image/",description['icon_url_large']]) if 'icon_url_large' in list(description.keys()) else ""
         self.icon_drag_url = description.get('icon_drag_url')
         self.name = description.get('name')
         self.market_hash_name = description.get('market_hash_name')
@@ -79,8 +74,8 @@ class Item(object):
         self.commodity = bool(description.get('commodity',True))
         self.market_tradable_restriction = description.get('market_tradable_restriction')
         self.descriptions = description.get('descriptions')
-        self.actions = description['actions'] if 'actions' in description.keys() else ""
-        self.market_actions = description['market_actions'] if 'market_actions' in description.keys() else ""
+        self.actions = description['actions'] if 'actions' in list(description.keys()) else ""
+        self.market_actions = description['market_actions'] if 'market_actions' in list(description.keys()) else ""
         self.tags = description['tags']
     def getMarketHashName(self):
         if self.market_hash_name != "":
@@ -90,7 +85,7 @@ class Item(object):
         else:
             return self.name
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return str(self).encode('utf-8')
     def __unicode__(self):
         return self.getMarketHashName()
 

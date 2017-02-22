@@ -35,9 +35,9 @@ class IEconService(SteamWebApi):
                 'active_only':int(kwargs.get('active_only',1)),
                 'historical_only':int(kwargs.get('historical_only',0)),
                 }
-        if "language" in kwargs.keys():
+        if "language" in list(kwargs.keys()):
             arguments['language'] = kwargs['language']
-        if "time_historical_cutoff" in kwargs.keys():
+        if "time_historical_cutoff" in list(kwargs.keys()):
             arguments['time_historical_cutoff'] = kwargs['time_historical_cutoff']
         response = self.request.get(self.baseURL+self.endpoint+method,params=arguments)
         try:
@@ -53,7 +53,7 @@ class IEconService(SteamWebApi):
                 'key':self.key,
                 'tradeofferid':tradeofferid,
                 }
-        if "language" in kwargs.keys():
+        if "language" in list(kwargs.keys()):
             arguments['language'] = kwargs['language']
         response = self.request.get(self.baseURL+self.endpoint+method,params=arguments)
         try:

@@ -12,7 +12,7 @@ def ignoreConnectionErrors(*fun,**opts):
                     break
                 except ConnectionError as e:
                     if opts.get('echo',False):
-                        print e
+                        print(e)
                     time.sleep(1)
         return wrapper
     if len(fun) == 1:
